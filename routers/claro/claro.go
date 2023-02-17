@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func (c *ClaroRouter) RetrieveToken() {
+func (c *ClaroRouter) RefreshToken() error {
 	resp, err := c.HTTPClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(map[string]string{
@@ -16,51 +16,54 @@ func (c *ClaroRouter) RetrieveToken() {
 		}).
 		Post(c.Routes["login"])
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	var response RetrieveTokenResponse
+	var response RefreshTokenResponse
 	json.Unmarshal(resp.Body(), &response)
 	c.Token = response.AccessToken
+	return nil
 }
 
-func (c *ClaroRouter) ListDevices() []Device {
+func (c *ClaroRouter) ListDevices() (output []Device, err error) {
 	resp, err := c.HTTPClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Access-Token", c.Token).
 		Get(c.Routes["devices"])
 	if err != nil {
-		panic(err)
+		return output, err
 	}
 
-	var response []Device
-	json.Unmarshal(resp.Body(), &response)
-	return response
+	json.Unmarshal(resp.Body(), &output)
+	return output, nil
 }
 
-func (c *ClaroRouter) GetFilteredDevices() (output []FilteredDevice) {
+func (c *ClaroRouter) GetFilteredDevices() (output []FilteredDevice, err error) {
 	resp, err := c.HTTPClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Access-Token", c.Token).
 		Get(c.Routes["macFiltering"])
 	if err != nil {
-		panic(err)
+		return output, err
 	}
 
 	var response FilteredDevicesResponse
 	json.Unmarshal(resp.Body(), &response)
-	return response.Rules
+	return response.Rules, nil
 }
 
-func (c *ClaroRouter) FilterDeviceByMac(mac string) bool {
-	lockedDevices := c.GetFilteredDevices()
+func (c *ClaroRouter) FilterDeviceByMac(mac string) error {
+	lockedDevices, err := c.GetFilteredDevices()
+	if err != nil {
+		return err
+	}
 	for _, device := range lockedDevices {
 		if device.MacAddress == mac {
-			return true
+			return nil
 		}
 	}
 
-	resp, err := c.HTTPClient.R().
+	_, err = c.HTTPClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Access-Token", c.Token).
 		SetBody(map[string]interface{}{
@@ -69,15 +72,18 @@ func (c *ClaroRouter) FilterDeviceByMac(mac string) bool {
 		}).
 		Post(c.Routes["macFiltering"])
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	return resp.IsSuccess()
+	return nil
 }
 
-func (c *ClaroRouter) UnfilterDeviceByMac(mac string) bool {
+func (c *ClaroRouter) UnfilterDeviceByMac(mac string) error {
 	newRules := make([]FilterRule, 0)
-	lockedDevices := c.GetFilteredDevices()
+	lockedDevices, err := c.GetFilteredDevices()
+	if err != nil {
+		return err
+	}
 	for _, device := range lockedDevices {
 		if device.MacAddress != mac {
 			newRules = append(newRules, FilterRule{
@@ -87,7 +93,7 @@ func (c *ClaroRouter) UnfilterDeviceByMac(mac string) bool {
 		}
 	}
 
-	resp, err := c.HTTPClient.R().
+	_, err = c.HTTPClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Access-Token", c.Token).
 		SetBody(map[string]interface{}{
@@ -95,10 +101,10 @@ func (c *ClaroRouter) UnfilterDeviceByMac(mac string) bool {
 		}).
 		Put(c.Routes["macFiltering"])
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	return resp.IsSuccess()
+	return nil
 }
 
 func NewClaroRouter() *ClaroRouter {
@@ -112,6 +118,8 @@ func NewClaroRouter() *ClaroRouter {
 			"macFiltering": "api/v1/service/macFiltering",
 		},
 	}
-	router.RetrieveToken()
+	if err := router.RefreshToken(); err != nil {
+		panic(err)
+	}
 	return router
 }

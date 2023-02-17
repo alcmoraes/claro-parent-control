@@ -2,7 +2,7 @@ package claro
 
 import "github.com/go-resty/resty/v2"
 
-type RetrieveTokenResponse struct {
+type RefreshTokenResponse struct {
 	AccessToken string `json:"accessToken"`
 }
 

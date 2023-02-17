@@ -15,17 +15,20 @@ var listFilteredCmd = &cobra.Command{
 	Use:   "listFiltered",
 	Short: "List the devices that are currently blacklisted via mac address",
 	Run: func(cmd *cobra.Command, args []string) {
-		
+
 		router := claro.NewClaroRouter()
 
-		filteredDevices := router.GetFilteredDevices()
+		filteredDevices, err := router.GetFilteredDevices()
+		if err != nil {
+			panic(err)
+		}
 
 		fmt.Printf("===== DEVICES =====\n")
 		for _, device := range filteredDevices {
 			fmt.Printf("%s - %s\n", device.MacAddress, device.Name)
 		}
 		fmt.Printf("===================\n")
-		
+
 	},
 }
 

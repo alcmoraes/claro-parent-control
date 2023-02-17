@@ -15,10 +15,13 @@ var listDevicesCmd = &cobra.Command{
 	Use:   "listDevices",
 	Short: "List devices connected to the DHCP server",
 	Run: func(cmd *cobra.Command, args []string) {
-		
+
 		router := claro.NewClaroRouter()
 
-		devices := router.ListDevices()
+		devices, err := router.ListDevices()
+		if err != nil {
+			panic(err)
+		}
 
 		fmt.Printf("===== DEVICES =====\n")
 		for _, device := range devices {
