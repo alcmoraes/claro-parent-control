@@ -1,0 +1,7 @@
+{
+  "claro": {
+    "host": "http://192.168.0.1",
+    "username": "admin",
+    "password": "admin"
+  }
+}
