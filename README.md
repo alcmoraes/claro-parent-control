@@ -10,7 +10,7 @@ As of now, this tool works only with routers from the **Claro** ISP. A model cal
 
 You can check your model by accessing the router's web interface, and looking at the inspector's console.
 
-![Screenshot](https://github.com/alcmoraes/yip/blob/master/static/router-inspector.png)
+![Screenshot](https://user-images.githubusercontent.com/2521595/219724214-336e6601-e538-4c50-adf5-b72484c87d94.png)
 
 ## Configuration
 Put the `.yip.json` inside your `$HOME` folder and configure the credentials used to access your router.
