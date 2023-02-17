@@ -18,6 +18,7 @@ You can check your browser inspector to retrieve your username and password used
 
 ## Usage
 
+## Command Line
 
 ### List devices connected to the DHCP
 ```shell
@@ -45,3 +46,26 @@ $ yip filterMac 64:A2:00:01:E8:6B 24:A1:60:3F:51:37 ...
 ```shell
 $ yip unfilterMac 64:A2:00:01:E8:6B 24:A1:60:3F:51:37 ...
 ```
+
+## Telegram Bot
+
+You can also run a telegram bot to listen to your commands so you can trigger the client from anywhere.
+
+Run it with
+
+```shell
+$ yip telegramBot
+```
+
+*In order to be able to execute commands. You should login using the `telegram.password` set on the config* <br/>
+```shell
+/login [PASSWORD]
+```
+
+The available commands are:
+
+| command  | description |
+|---|---|
+| `/reauth`  | In case the authentication with your router expires. Use this command to re-authenticate.  |
+| `/block`  | Choose devices from a given list to block it |
+| `/unblock`  | Choose between blocked devices to unblock it  |
