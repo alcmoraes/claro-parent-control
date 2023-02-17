@@ -49,6 +49,8 @@ $ yip unfilterMac 64:A2:00:01:E8:6B 24:A1:60:3F:51:37 ...
 
 ## Telegram Bot
 
+![Screenshot](https://user-images.githubusercontent.com/2521595/219799683-550e386b-3dec-4982-a73a-5b9d0f182cbb.png)
+
 You can also run a telegram bot to listen to your commands so you can trigger the client from anywhere.
 
 Run it with
