@@ -13,7 +13,8 @@ You can check your model by accessing the router's web interface, and looking at
 ![Screenshot](https://github.com/alcmoraes/yip/blob/master/static/router-inspector.png)
 
 ## Configuration
-Put the `.yip.json` inside your `$HOME` folder and configure the credentials
+Put the `.yip.json` inside your `$HOME` folder and configure the credentials used to access your router.
+You can check your browser inspector to retrieve your username and password used to authenticate.
 
 ## Usage
 
