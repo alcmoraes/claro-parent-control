@@ -59,15 +59,7 @@ Run it with
 $ yip telegramBot
 ```
 
-*In order to be able to execute commands. You should login using the `telegram.password` set on the config* <br/>
+*In order to be able to execute commands you should login using the `telegram.password` set on the config* <br/>
 ```shell
 /login [PASSWORD]
 ```
-
-The available commands are:
-
-| command  | description |
-|---|---|
-| `/reauth`  | In case the authentication with your router expires. Use this command to re-authenticate.  |
-| `/block`  | Choose devices from a given list to block it |
-| `/unblock`  | Choose between blocked devices to unblock it  |
