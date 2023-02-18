@@ -2,6 +2,7 @@ package claro
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/alcmoraes/yip/routers"
 	"github.com/go-resty/resty/v2"
@@ -59,7 +60,7 @@ func (c *ClaroRouter) FilterDeviceByMac(mac string) error {
 		return err
 	}
 	for _, device := range lockedDevices {
-		if device.MacAddress == mac {
+		if strings.EqualFold(device.MacAddress, mac) {
 			return nil
 		}
 	}
@@ -68,7 +69,7 @@ func (c *ClaroRouter) FilterDeviceByMac(mac string) error {
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Access-Token", c.Token).
 		SetBody(map[string]interface{}{
-			"macAddress": mac,
+			"macAddress": strings.ToUpper(mac),
 			"active":     true,
 		}).
 		Post(c.Routes["macFiltering"])
@@ -86,10 +87,10 @@ func (c *ClaroRouter) UnfilterDeviceByMac(mac string) error {
 		return err
 	}
 	for _, device := range lockedDevices {
-		if device.MacAddress != mac {
+		if strings.EqualFold(device.MacAddress, mac) {
 			newRules = append(newRules, FilterRule{
 				Active:     true,
-				MacAddress: device.MacAddress,
+				MacAddress: strings.ToUpper(device.MacAddress),
 			})
 		}
 	}

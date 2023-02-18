@@ -35,12 +35,14 @@ func (t *TelegramBot) Start() {
 	menu := &tele.ReplyMarkup{ForceReply: true, ResizeKeyboard: true}
 
 	btnReauthenticateRouter := menu.Text("🔐 Reauth Router")
-	btnBlacklistMac := menu.Text("👎 Blacklist MAC")
-	btnClearBlacklist := menu.Text("👍 Clear Blacklist")
+	btnWhitelistMac := menu.Text("👍 Allow MAC")
+	btnBlacklistMac := menu.Text("👎 Deny MAC")
+	btnClearBlacklist := menu.Text("🧹 Clear Blacklist")
 
 	menu.Reply(
 		menu.Row(btnReauthenticateRouter),
-		menu.Row(btnBlacklistMac, btnClearBlacklist),
+		menu.Row(btnBlacklistMac, btnWhitelistMac),
+		menu.Row(btnClearBlacklist),
 	)
 
 	// Login to bot
@@ -50,6 +52,7 @@ func (t *TelegramBot) Start() {
 
 	b.Handle("/login", t.Login)
 	b.Handle(&btnReauthenticateRouter, t.ReauthenticateRouter, t.LockMiddleware)
+	b.Handle(&btnWhitelistMac, t.WhitelistMac, t.LockMiddleware)
 	b.Handle(&btnBlacklistMac, t.BlacklistMac, t.LockMiddleware)
 	b.Handle(&btnClearBlacklist, t.ClearBlacklist, t.LockMiddleware)
 
@@ -96,7 +99,7 @@ func (t *TelegramBot) BlacklistMac(c tele.Context) error {
 		return c.Send("Failed to list devices")
 	}
 
-	menu := &tele.ReplyMarkup{ForceReply: true, ResizeKeyboard: true}
+	menu := &tele.ReplyMarkup{}
 	options := make([]tele.Row, 0)
 
 	for _, d := range devices {
@@ -106,6 +109,24 @@ func (t *TelegramBot) BlacklistMac(c tele.Context) error {
 	menu.Inline(options...)
 
 	return c.Send("Choose the device to block:", menu)
+}
+
+func (t *TelegramBot) WhitelistMac(c tele.Context) error {
+	devices, err := t.router.GetFilteredDevices()
+	if err != nil {
+		return c.Send("Failed to show blacklist")
+	}
+
+	menu := &tele.ReplyMarkup{}
+	options := make([]tele.Row, 0)
+
+	for _, d := range devices {
+		btn := menu.Data(fmt.Sprintf("%s (%s)", d.MacAddress, d.Name), "/unblock", d.MacAddress)
+		options = append(options, menu.Row(btn))
+	}
+	menu.Inline(options...)
+
+	return c.Send("Choose the device to unblock:", menu)
 }
 
 func (t *TelegramBot) ClearBlacklist(c tele.Context) error {
@@ -120,11 +141,17 @@ func (t *TelegramBot) OnCallback(c tele.Context) error {
 	command := strings.TrimSpace(c.Args()[0])
 
 	switch command {
+	case "/unblock":
+		if err := t.router.UnfilterDeviceByMac(c.Args()[1]); err != nil {
+			return c.Send("Failed to unblock the device")
+		} else {
+			return c.Send(fmt.Sprintf("Device %s unblocked successfully", c.Args()[1]))
+		}
 	case "/block":
 		if err := t.router.FilterDeviceByMac(c.Args()[1]); err != nil {
 			return c.Send("Failed to block the device")
 		} else {
-			return c.Send("Device blocked successfully")
+			return c.Send(fmt.Sprintf("Device %s blocked successfully", c.Args()[1]))
 		}
 	}
 
