@@ -11,6 +11,24 @@ builds:
       - linux
       - windows
       - darwin
+    goarch:
+      - amd64
+      - arm
+      - arm64
+      - 386
+    ignore:
+      - goos: windows
+        goarch: arm
+      - goos: darwin
+        goarch: arm
+      - goos: windows
+        goarch: arm64
+      - goos: darwin
+        goarch: arm64
+      - goos: darwin
+        goarch: 386
+    goarm:
+      - 7
 archives:
   - format: tar.gz
     # this name template makes the OS and Arch compatible with the results of uname.

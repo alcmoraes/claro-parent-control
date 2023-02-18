@@ -3,6 +3,7 @@ package claro
 import (
 	"encoding/json"
 
+	"github.com/alcmoraes/yip/routers"
 	"github.com/go-resty/resty/v2"
 	"github.com/spf13/viper"
 )
@@ -25,7 +26,7 @@ func (c *ClaroRouter) RefreshToken() error {
 	return nil
 }
 
-func (c *ClaroRouter) ListDevices() (output []Device, err error) {
+func (c *ClaroRouter) ListDevices() (output []routers.Device, err error) {
 	resp, err := c.HTTPClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Access-Token", c.Token).
@@ -38,7 +39,7 @@ func (c *ClaroRouter) ListDevices() (output []Device, err error) {
 	return output, nil
 }
 
-func (c *ClaroRouter) GetFilteredDevices() (output []FilteredDevice, err error) {
+func (c *ClaroRouter) GetFilteredDevices() (output []routers.FilteredDevice, err error) {
 	resp, err := c.HTTPClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Access-Token", c.Token).
@@ -107,9 +108,23 @@ func (c *ClaroRouter) UnfilterDeviceByMac(mac string) error {
 	return nil
 }
 
-func NewClaroRouter() *ClaroRouter {
+func (c *ClaroRouter) ClearMacFilters() error {
+	_, err := c.HTTPClient.R().
+		SetHeader("Content-Type", "application/json").
+		SetHeader("Access-Token", c.Token).
+		SetBody(map[string]interface{}{
+			"rules": make([]string, 0),
+		}).
+		Put(c.Routes["macFiltering"])
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func NewClaroRouter() routers.Router {
 	router := &ClaroRouter{
-		HTTPClient: resty.New().SetHostURL(viper.GetString("claro.host")),
+		HTTPClient: resty.New().SetBaseURL(viper.GetString("claro.host")),
 		Username:   viper.GetString("claro.username"),
 		Password:   viper.GetString("claro.password"),
 		Routes: map[string]string{
