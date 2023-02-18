@@ -15,6 +15,7 @@ type TelegramBot struct {
 	bot       *tele.Bot
 	router    routers.Router
 	authGroup map[int64]bool
+	nameCache map[string]string
 }
 
 func (t *TelegramBot) Start() {
@@ -103,6 +104,7 @@ func (t *TelegramBot) BlacklistMac(c tele.Context) error {
 	options := make([]tele.Row, 0)
 
 	for _, d := range devices {
+		t.nameCache[strings.ToUpper(d.MacAddress)] = d.Name
 		btn := menu.Data(fmt.Sprintf("%s (%s)", d.MacAddress, d.Name), "/block", d.MacAddress)
 		options = append(options, menu.Row(btn))
 	}
@@ -124,6 +126,10 @@ func (t *TelegramBot) WhitelistMac(c tele.Context) error {
 	options := make([]tele.Row, 0)
 
 	for _, d := range devices {
+		cachedName := t.nameCache[strings.ToUpper(d.MacAddress)]
+		if cachedName != "" {
+			d.Name = cachedName
+		}
 		btn := menu.Data(fmt.Sprintf("%s (%s)", d.MacAddress, d.Name), "/unblock", d.MacAddress)
 		options = append(options, menu.Row(btn))
 	}
@@ -165,5 +171,6 @@ func NewTelegramBot(r routers.Router) *TelegramBot {
 	return &TelegramBot{
 		router:    r,
 		authGroup: make(map[int64]bool, 0),
+		nameCache: make(map[string]string, 0),
 	}
 }

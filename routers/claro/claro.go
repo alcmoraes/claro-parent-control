@@ -2,7 +2,10 @@ package claro
 
 import (
 	"encoding/json"
+	"errors"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/alcmoraes/yip/routers"
 	"github.com/go-resty/resty/v2"
@@ -37,6 +40,9 @@ func (c *ClaroRouter) ListDevices() (output []routers.Device, err error) {
 	}
 
 	json.Unmarshal(resp.Body(), &output)
+
+	output = routers.RemoveWhitelisted(output)
+
 	return output, nil
 }
 
@@ -44,7 +50,7 @@ func (c *ClaroRouter) GetFilteredDevices() (output []routers.FilteredDevice, err
 	resp, err := c.HTTPClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Access-Token", c.Token).
-		Get(c.Routes["macFiltering"])
+		Get(c.Routes["macFiltering"] + "?_=" + strconv.FormatInt(time.Now().UTC().UnixNano(), 10))
 	if err != nil {
 		return output, err
 	}
@@ -55,11 +61,14 @@ func (c *ClaroRouter) GetFilteredDevices() (output []routers.FilteredDevice, err
 }
 
 func (c *ClaroRouter) FilterDeviceByMac(mac string) error {
-	lockedDevices, err := c.GetFilteredDevices()
+	if routers.IsWhitelisted(mac) {
+		return errors.New("device is whitelisted")
+	}
+	blacklistedDevices, err := c.GetFilteredDevices()
 	if err != nil {
 		return err
 	}
-	for _, device := range lockedDevices {
+	for _, device := range blacklistedDevices {
 		if strings.EqualFold(device.MacAddress, mac) {
 			return nil
 		}
@@ -69,7 +78,7 @@ func (c *ClaroRouter) FilterDeviceByMac(mac string) error {
 		SetHeader("Content-Type", "application/json").
 		SetHeader("Access-Token", c.Token).
 		SetBody(map[string]interface{}{
-			"macAddress": strings.ToUpper(mac),
+			"macAddress": mac,
 			"active":     true,
 		}).
 		Post(c.Routes["macFiltering"])
@@ -82,15 +91,15 @@ func (c *ClaroRouter) FilterDeviceByMac(mac string) error {
 
 func (c *ClaroRouter) UnfilterDeviceByMac(mac string) error {
 	newRules := make([]FilterRule, 0)
-	lockedDevices, err := c.GetFilteredDevices()
+	blacklistedDevices, err := c.GetFilteredDevices()
 	if err != nil {
 		return err
 	}
-	for _, device := range lockedDevices {
-		if strings.EqualFold(device.MacAddress, mac) {
+	for _, device := range blacklistedDevices {
+		if !strings.EqualFold(device.MacAddress, mac) {
 			newRules = append(newRules, FilterRule{
 				Active:     true,
-				MacAddress: strings.ToUpper(device.MacAddress),
+				MacAddress: device.MacAddress,
 			})
 		}
 	}
