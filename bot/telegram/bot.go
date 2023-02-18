@@ -116,6 +116,9 @@ func (t *TelegramBot) WhitelistMac(c tele.Context) error {
 	if err != nil {
 		return c.Send("Failed to show blacklist")
 	}
+	if len(devices) == 0 {
+		return c.Send("No devices are blocked")
+	}
 
 	menu := &tele.ReplyMarkup{}
 	options := make([]tele.Row, 0)
