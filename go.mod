@@ -6,6 +6,7 @@ require (
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.15.0
+	golang.org/x/sys v0.6.0
 	gopkg.in/telebot.v3 v3.1.2
 )
 
@@ -22,7 +23,6 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
 	golang.org/x/net v0.7.0 // indirect
-	golang.org/x/sys v0.5.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

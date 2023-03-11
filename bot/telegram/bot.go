@@ -6,6 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/sys/unix"
+
+	"github.com/alcmoraes/yip/messages"
 	"github.com/alcmoraes/yip/routers"
 	"github.com/spf13/viper"
 	tele "gopkg.in/telebot.v3"
@@ -35,20 +38,21 @@ func (t *TelegramBot) Start() {
 
 	menu := &tele.ReplyMarkup{ForceReply: true, ResizeKeyboard: true}
 
-	btnReauthenticateRouter := menu.Text("🔐 Reauth Router")
-	btnWhitelistMac := menu.Text("👍 Allow MAC")
-	btnBlacklistMac := menu.Text("👎 Deny MAC")
-	btnClearBlacklist := menu.Text("🧹 Clear Blacklist")
+	btnReauthenticateRouter := menu.Text(messages.Get("BTN_REAUTH_ROUTER"))
+	btnWhitelistMac := menu.Text(messages.Get("BTN_ALLOW_MAC"))
+	btnBlacklistMac := menu.Text(messages.Get("BTN_BLOCK_MAC"))
+	btnClearBlacklist := menu.Text(messages.Get("BTN_CLEAR_BLACKLIST"))
+	btnRestart := menu.Text(messages.Get("BTN_RESTART"))
 
 	menu.Reply(
 		menu.Row(btnReauthenticateRouter),
 		menu.Row(btnBlacklistMac, btnWhitelistMac),
-		menu.Row(btnClearBlacklist),
+		menu.Row(btnClearBlacklist, btnRestart),
 	)
 
 	// Login to bot
 	b.Handle("/start", func(c tele.Context) error {
-		return c.Send("Hello!\nUse: \n\n/login PASSWORD\n\nto authenticate before using it", menu)
+		return c.Send(messages.Get("MSG_WELCOME"), menu)
 	})
 
 	b.Handle("/login", t.Login)
@@ -56,10 +60,16 @@ func (t *TelegramBot) Start() {
 	b.Handle(&btnWhitelistMac, t.WhitelistMac, t.LockMiddleware)
 	b.Handle(&btnBlacklistMac, t.BlacklistMac, t.LockMiddleware)
 	b.Handle(&btnClearBlacklist, t.ClearBlacklist, t.LockMiddleware)
+	b.Handle(&btnRestart, t.RestartPi, t.LockMiddleware)
 
 	b.Handle(tele.OnCallback, t.OnCallback, t.LockMiddleware)
 
 	b.Start()
+}
+
+func (t *TelegramBot) RestartPi(c tele.Context) error {
+	err := unix.Reboot(unix.LINUX_REBOOT_CMD_RESTART);
+	return err
 }
 
 func (t *TelegramBot) LockMiddleware(next tele.HandlerFunc) tele.HandlerFunc {
@@ -70,34 +80,34 @@ func (t *TelegramBot) LockMiddleware(next tele.HandlerFunc) tele.HandlerFunc {
 		if t.authGroup[c.Sender().ID] {
 			return next(c) // continue execution chain
 		}
-		return c.Send("You are not authenticated.\nPlease use\n\n/login PASSWORD\n\nto authenticate")
+		return c.Send(messages.Get("MSG_UNAUTHENTICATED"))
 	}
 }
 
 func (t *TelegramBot) Login(c tele.Context) error {
 	arguments := c.Args()
 	if len(arguments) == 0 {
-		return c.Send("Please use\n\n/login PASSWORD\n\nto authenticate")
+		return c.Send(messages.Get("MSG_UNAUTHENTICATED"))
 	}
 	if arguments[0] == viper.GetString("telegram.password") {
 		t.authGroup[c.Sender().ID] = true
-		return c.Send("Login successful")
+		return c.Send(messages.Get("MSG_AUTHENTICATED"))
 	} else {
-		return c.Send("Wrong password")
+		return c.Send(messages.Get("MSG_WRONG_PASSWORD"))
 	}
 }
 
 func (t *TelegramBot) ReauthenticateRouter(c tele.Context) error {
 	if err := t.router.RefreshToken(); err != nil {
-		return c.Send("Failed to reauthenticate the router")
+		return c.Send(messages.Get("MSG_REAUTH_FAILED"))
 	}
-	return c.Send("Router reauthenticated successfully")
+	return c.Send(messages.Get("MSG_REAUTH_SUCCESS"))
 }
 
 func (t *TelegramBot) BlacklistMac(c tele.Context) error {
 	devices, err := t.router.ListDevices()
 	if err != nil {
-		return c.Send("Failed to list devices")
+		return c.Send(messages.Get("MSG_FAILED_TO_GET_BLACKLIST"))
 	}
 
 	menu := &tele.ReplyMarkup{}
@@ -110,16 +120,16 @@ func (t *TelegramBot) BlacklistMac(c tele.Context) error {
 	}
 	menu.Inline(options...)
 
-	return c.Send("Choose the device to block:", menu)
+	return c.Send(messages.Get("MSG_CHOOSE_DEVICE"), menu)
 }
 
 func (t *TelegramBot) WhitelistMac(c tele.Context) error {
 	devices, err := t.router.GetFilteredDevices()
 	if err != nil {
-		return c.Send("Failed to show blacklist")
+		return c.Send(messages.Get("MSG_FAILED_TO_GET_BLACKLIST"))
 	}
 	if len(devices) == 0 {
-		return c.Send("No devices are blocked")
+		return c.Send(messages.Get("MSG_NO_DEVICES_BLOCKED"))
 	}
 
 	menu := &tele.ReplyMarkup{}
@@ -135,14 +145,14 @@ func (t *TelegramBot) WhitelistMac(c tele.Context) error {
 	}
 	menu.Inline(options...)
 
-	return c.Send("Choose the device to unblock:", menu)
+	return c.Send(messages.Get("MSG_CHOOSE_DEVICE"), menu)
 }
 
 func (t *TelegramBot) ClearBlacklist(c tele.Context) error {
 	if err := t.router.ClearMacFilters(); err != nil {
-		return c.Send("Failed to clear MAC filters")
+		return c.Send(messages.Get("MSG_FAILED_TO_CLEAR_BLACKLIST"))
 	}
-	return c.Send("All devices are allowed now")
+	return c.Send(messages.Get("MSG_BLACKLIST_CLEARED"))
 }
 
 func (t *TelegramBot) OnCallback(c tele.Context) error {
@@ -152,19 +162,19 @@ func (t *TelegramBot) OnCallback(c tele.Context) error {
 	switch command {
 	case "/unblock":
 		if err := t.router.UnfilterDeviceByMac(c.Args()[1]); err != nil {
-			return c.Send("Failed to unblock the device")
+			return c.Send(messages.Get("MSG_FAILED_TO_UNBLOCK_DEVICE"))
 		} else {
-			return c.Send(fmt.Sprintf("Device %s unblocked successfully", c.Args()[1]))
+			return c.Send(messages.Get("MSG_DEVICE_UNBLOCKED"))
 		}
 	case "/block":
 		if err := t.router.FilterDeviceByMac(c.Args()[1]); err != nil {
-			return c.Send("Failed to block the device")
+			return c.Send(messages.Get("MSG_FAILED_TO_BLOCK_DEVICE"))
 		} else {
-			return c.Send(fmt.Sprintf("Device %s blocked successfully", c.Args()[1]))
+			return c.Send(messages.Get("MSG_DEVICE_BLOCKED"))
 		}
 	}
 
-	return c.Send("Invalid command")
+	return c.Send(messages.Get("MSG_UNKNOWN_COMMAND"))
 }
 
 func NewTelegramBot(r routers.Router) *TelegramBot {
